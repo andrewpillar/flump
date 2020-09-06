@@ -214,24 +214,14 @@ func (fs *Filesystem) Get(abbrev string) (Object, error) {
 
 	var full string
 
-	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			return nil
-		}
-
-		parts := strings.Split(path, string(os.PathSeparator))
-
-		full = parts[0] + parts[1]
-		return nil
-	})
+	matches, err := filepath.Glob(filepath.Join(dir, "*"))
 
 	if err != nil {
 		return Object{}, err
 	}
+
+	parts := strings.Split(matches[0], fs.dir)
+	full = strings.Replace(parts[1], string(os.PathSeparator), "", -1)
 
 	ref, err := ParseRef(full)
 
@@ -336,7 +326,7 @@ func handle(secret string, limit int64, fs *Filesystem) http.Handler {
 					respJSON(w, map[string]string{"message": "Object exists"}, http.StatusBadRequest)
 					return
 				}
-				log.Println("ERROR", err)
+				log.Println("ERROR", r.Method, r.URL.Path, err)
 				respJSON(w, map[string]string{"message": err.Error()}, http.StatusInternalServerError)
 				return
 			}
@@ -359,7 +349,7 @@ func handle(secret string, limit int64, fs *Filesystem) http.Handler {
 		obj, err := fs.Get(cleaned)
 
 		if err != nil {
-			log.Println("ERROR", err)
+			log.Println("ERROR", r.Method, r.URL.Path, err)
 			respJSON(w, map[string]string{"message": "Not found"}, http.StatusNotFound)
 			return
 		}
