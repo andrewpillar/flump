@@ -343,6 +343,11 @@ func handle(secret string, limit int64, fs *Filesystem) http.Handler {
 			return
 		}
 
+		if r.URL.Path == "/" {
+			respJSON(w, map[string]string{"message": "Not found"}, http.StatusNotFound)
+			return
+		}
+
 		trimmed := strings.TrimPrefix(r.URL.Path, "/")
 		cleaned := strings.Replace(trimmed, "..", "", -1)
 
