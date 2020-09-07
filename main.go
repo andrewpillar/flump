@@ -18,6 +18,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -278,6 +279,16 @@ func respJSON(w http.ResponseWriter, data interface{}, status int) {
 
 func handle(secret string, limit int64, fs *Filesystem) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				if e, ok := err.(error); ok {
+					log.Println("ERROR", r.Method, r.URL, e.Error())
+				}
+				log.Println("ERROR", r.Method, r.URL, string(debug.Stack()))
+				respJSON(w, map[string]string{"message": "Something went wrong"}, http.StatusInternalServerError)
+			}
+		}()
+
 		if r.Method != "GET" && r.Method != "POST" {
 			respJSON(w, map[string]string{"message": "Method not allowed"}, http.StatusMethodNotAllowed)
 			return
